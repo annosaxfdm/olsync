@@ -1,0 +1,17 @@
+[package]
+name = "olsync"
+version = "0.1.0"
+edition = "2021"
+authors = ["Konrad Höffner <konrad.hoeffner@uni-leipzig.de>"]
+description = "Generate an OLS YAML configuration file from an existing OLS instance"
+readme = "README.md"
+repository = "https://github.com/annosaxfdm/olsync/"
+license = "MIT"
+keywords = ["ontology"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+reqwest = { version= "0.11.10", features=["blocking", "json"] }
+serde = { version = "1.0", features = ["derive"] }

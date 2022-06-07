@@ -1,0 +1,3 @@
+/target
+# can unignore Cargo.lock later when the project is more stable
+Cargo.lock
