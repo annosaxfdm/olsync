@@ -3,6 +3,8 @@
 #![allow(unused_variables)]
 
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::env;
 use std::error::Error;
 use std::fs;
 
@@ -12,7 +14,7 @@ enum Status {
     LOADED,
     SKIP,
     FAILED,
-    LOADING
+    LOADING,
 }
 
 #[derive(Deserialize, Debug)]
@@ -40,13 +42,13 @@ struct Embedded {
 }
 
 #[derive(Deserialize, Debug)]
-struct Href{
-    href: String
+struct Href {
+    href: String,
 }
 
 #[derive(Deserialize, Debug)]
 struct Links {
-    next: Option<Href>
+    next: Option<Href>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -67,7 +69,6 @@ struct OlsOntology {
 
 #[derive(Serialize, Debug)]
 struct OlsConfig {
-
     ontologies: Vec<OlsOntology>,
 }
 // ***************************
@@ -82,12 +83,13 @@ fn transformO(o: &Ontology) -> OlsOntology {
 }
 
 fn transform(embedded: &Embedded) -> OlsConfig {
-    let max = core::cmp::min(999,embedded.ontologies.len()); // for debugging
+    let max = core::cmp::min(999, embedded.ontologies.len()); // for debugging
     OlsConfig {
         ontologies: embedded.ontologies[..max].iter().map(transformO).collect(),
     }
 }
 
+/* */
 fn load(url: &str) -> Result<OntologiesRoot, reqwest::Error> {
     let mut root: OntologiesRoot = reqwest::blocking::get(url)?.json()?;
 
@@ -96,10 +98,11 @@ fn load(url: &str) -> Result<OntologiesRoot, reqwest::Error> {
     while let Some(ref nextRef) = cursor._links.next {
         println!("{}", nextRef.href);
         nextRoot = reqwest::blocking::get(nextRef.href.clone())?.json()?;
-        root._embedded.ontologies.append(&mut nextRoot._embedded.ontologies);
+        root._embedded
+            .ontologies
+            .append(&mut nextRoot._embedded.ontologies);
         cursor = &nextRoot;
     }
-    // TODO: read following pages
     //println!("{:#?}",root);
     for o in &root._embedded.ontologies {
         //println!("{:#?}", o)
@@ -107,17 +110,39 @@ fn load(url: &str) -> Result<OntologiesRoot, reqwest::Error> {
     Ok(root)
 }
 
+fn loads(urls: &Vec<String>) -> Result<Embedded, reqwest::Error> {
+    let it = urls.iter().map(|u| load(&(u.to_owned()+&"ontologies".to_owned())));
+    // prevent duplicates
+    let mut map = HashMap::new();
+    for r in it {
+        for ontology in r?._embedded.ontologies {
+            map.insert(ontology.ontologyId.clone(), ontology);
+        }
+    }
+    Ok(Embedded {
+        ontologies: map.into_values().collect(),
+    })
+}
+
 fn save(ols: OlsConfig, filename: &str) -> Result<(), Box<dyn Error>> {
     let s = serde_yaml::to_string(&ols)?;
     fs::write(filename, s)?;
-    println!("{} ontologies written to {}", ols.ontologies.len(), filename);
+    println!(
+        "{} ontologies written to {}",
+        ols.ontologies.len(),
+        filename
+    );
     Ok(())
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    //let uri = "https://terminology.nfdi4ing.de/ts4ing/api/ontologies";
-    let uri = "https://www.ebi.ac.uk/ols/api/ontologies/";
-    let root = load(uri)?;
-    save(transform(&root._embedded), "test.yml")?;
+    let DEFAULT_URIS = "https://terminology.nfdi4chem.de/ts/api/ https://terminology.nfdi4ing.de/ts4ing/api/".to_owned();
+    let uris = env::var("OLSYNC_API_URLS")
+        .unwrap_or(DEFAULT_URIS)
+        .split_whitespace()
+        .map(String::from)
+        .collect();
+    let embedded = loads(&uris)?;
+    save(transform(&embedded), "olsync.yml")?;
     Ok(())
 }
