@@ -83,9 +83,14 @@ fn transformO(o: &Ontology) -> OlsOntology {
 }
 
 fn transform(embedded: &Embedded) -> OlsConfig {
-    let max = core::cmp::min(999, embedded.ontologies.len()); // for debugging
+    let mut len = embedded.ontologies.len();
+    if let Ok(maxs) = env::var("OLSYNC_MAX_ONTOLOGIES") {
+        if let Ok(max) = maxs.parse::<usize>() {
+            len = core::cmp::min(len, max);
+        }
+    }
     OlsConfig {
-        ontologies: embedded.ontologies[..max].iter().map(transformO).collect(),
+        ontologies: embedded.ontologies[..len].iter().map(transformO).collect(),
     }
 }
 
@@ -111,7 +116,9 @@ fn load(url: &str) -> Result<OntologiesRoot, reqwest::Error> {
 }
 
 fn loads(urls: &Vec<String>) -> Result<Embedded, reqwest::Error> {
-    let it = urls.iter().map(|u| load(&(u.to_owned()+&"ontologies".to_owned())));
+    let it = urls
+        .iter()
+        .map(|u| load(&(u.to_owned() + &"ontologies".to_owned())));
     // prevent duplicates
     let mut map = HashMap::new();
     for r in it {
@@ -136,13 +143,18 @@ fn save(ols: OlsConfig, filename: &str) -> Result<(), Box<dyn Error>> {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let DEFAULT_URIS = "https://terminology.nfdi4chem.de/ts/api/ https://terminology.nfdi4ing.de/ts4ing/api/".to_owned();
+    let DEFAULT_URIS =
+        "https://terminology.nfdi4chem.de/ts/api/ https://terminology.nfdi4ing.de/ts4ing/api/"
+            .to_owned();
     let uris = env::var("OLSYNC_API_URLS")
         .unwrap_or(DEFAULT_URIS)
         .split_whitespace()
         .map(String::from)
         .collect();
     let embedded = loads(&uris)?;
-    save(transform(&embedded), "olsync.yml")?;
+    save(
+        transform(&embedded),
+        &env::var("OLSYNC_CONFIG_FILE").unwrap_or("olsync.yml".to_string()),
+    )?;
     Ok(())
 }
