@@ -18,13 +18,42 @@ enum Status {
 }
 
 #[derive(Deserialize, Debug)]
+enum ReasonerType {
+    EL,
+    OWL2,
+    NONE,
+}
+
+#[derive(Deserialize, Debug)]
+struct Annotations {
+ license: Option<Vec<String>>,
+ creator: Option<Vec<String>>,
+ rights: Option<Vec<String>>,
+ #[serde(alias = "format-version")]
+ formatversion: Option<Vec<String>>,
+ comment: Option<Vec<String>>,
+}
+
+#[derive(Deserialize, Debug)]
 struct OntologyConfig {
+    annotations: Annotations,
     id: String,
     versionIri: Option<String>,
+    title: Option<String>,
     namespace: String,
     preferredPrefix: String,
-    title: Option<String>,
+    description: Option<String>,
+    homepage: Option<String>,
     fileLocation: String,
+    oboSlims: bool,
+    reasonerType: ReasonerType,
+    baseUris: Vec<String>,
+    labelProperty: String,
+    synonymProperties: Vec<String>,
+    hierarchicalProperties: Vec<String>,
+    hiddenProperties: Vec<String>,
+    internalMetadataProperties: Vec<String>,
+    skos: bool,
 }
 
 #[derive(Deserialize, Debug)]
@@ -33,6 +62,10 @@ struct Ontology {
     loaded: Option<String>,
     updated: Option<String>,
     status: Status,
+    message: String,
+    version: Option<String>,
+    fileHash: String,
+    loadAttempts: u32,
     config: OntologyConfig,
 }
 
@@ -62,9 +95,18 @@ struct OntologiesRoot {
 struct OlsOntology {
     //activity_status: String
     id: String,
+    uri: String,
     ontology_purl: String,
     title: Option<String>,
     preferredPrefix: Option<String>,
+    description: Option<String>,
+    base_uri: Vec<String>,
+    homepage: Option<String>,
+    //mailing_list: Option<String>,
+    //definition_property: Option<String>,
+    synonym_property: Vec<String>,
+    hierarchical_property: Vec<String>,
+    hidden_property: Vec<String>,
 }
 
 #[derive(Serialize, Debug)]
@@ -79,6 +121,14 @@ fn transformO(o: &Ontology) -> OlsOntology {
         ontology_purl: o.config.fileLocation.clone(),
         title: o.config.title.clone(),
         preferredPrefix: Some(o.config.preferredPrefix.clone()),
+        uri: o.config.id.clone(),
+        description: o.config.description.clone(),
+        homepage: o.config.homepage.clone(),
+        base_uri: o.config.baseUris.clone(),
+        //definition_property: ..
+        synonym_property: o.config.synonymProperties.clone(),
+        hierarchical_property: o.config.hierarchicalProperties.clone(),
+        hidden_property: o.config.hiddenProperties.clone(),
     }
 }
 
