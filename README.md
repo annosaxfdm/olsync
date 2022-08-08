@@ -11,7 +11,7 @@ Clone the repository and `cargo run`.
 
 | Variable                   | Description |
 | ------------------------   | ------                   |
-| OLSYNC\_API\_URLs          | Whitespace separated list of source OLS instance API URLs. Duplicated IDs will be ignored. |
+| OLSYNC\_API\_URLS          | Whitespace separated list of source OLS instance API URLs. Duplicated IDs will be ignored. |
 | OLSYNC\_MAX\_ONTOLOGIES    | Limit the maximum amount of loaded ontologies for faster testing or with limited resources, however you can't control which ones get left out. When not specified, then all ontologies will be loaded.  |
 | OLSYNC\_CONFIG\_FILE       | Path to the yaml file where the output is saved. Will be overwritten. Put this in either `obo-config.yaml` or `ols-config.yaml` in the `config` folder of your OLS installation, the format is the same. You can use the other configuration file to specify your own ontologies.
 
@@ -33,7 +33,7 @@ Adding olsync as a Git submodule is more elegant but may incur frequent submodul
       olsync:
         build: ../olsync
         environment:
-          - OLSYNC_API_URLs=https://terminology.nfdi4chem.de/ts/api/ https://terminology.nfdi4ing.de/ts4ing/api/
+          - OLSYNC_API_URLS=https://terminology.nfdi4chem.de/ts/api/ https://terminology.nfdi4ing.de/ts4ing/api/
           - OLSYNC_CONFIG_FILE=/app/obo-config.yaml
           - OLSYNC_MAX_ONTOLOGIES=3
         volumes:
