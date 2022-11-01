@@ -2,10 +2,10 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::env;
-use std::error::Error;
 use std::fs;
 
 // OLS API *******************
@@ -26,12 +26,12 @@ enum ReasonerType {
 
 #[derive(Deserialize, Debug)]
 struct Annotations {
- license: Option<Vec<String>>,
- creator: Option<Vec<String>>,
- rights: Option<Vec<String>>,
- #[serde(alias = "format-version")]
- formatversion: Option<Vec<String>>,
- comment: Option<Vec<String>>,
+    license: Option<Vec<String>>,
+    creator: Option<Vec<String>>,
+    rights: Option<Vec<String>>,
+    #[serde(alias = "format-version")]
+    formatversion: Option<Vec<String>>,
+    comment: Option<Vec<String>>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -145,8 +145,9 @@ fn transform(embedded: &Embedded) -> OlsConfig {
 }
 
 /* */
-fn load(url: &str) -> Result<OntologiesRoot, reqwest::Error> {
-    let mut root: OntologiesRoot = reqwest::blocking::get(url)?.json()?;
+fn load(url: &str) -> Result<OntologiesRoot> {
+    let content = reqwest::blocking::get(url).context("Could not read content")?;
+    let mut root: OntologiesRoot = content.json().context("Could not decode to JSON")?;
 
     let mut cursor: &OntologiesRoot = &root;
     let mut nextRoot: OntologiesRoot;
@@ -165,10 +166,12 @@ fn load(url: &str) -> Result<OntologiesRoot, reqwest::Error> {
     Ok(root)
 }
 
-fn loads(urls: &Vec<String>) -> Result<Embedded, reqwest::Error> {
-    let it = urls
-        .iter()
-        .map(|u| load(&(u.to_owned() + &"ontologies".to_owned())));
+fn loads(urls: &Vec<String>) -> Result<Embedded> {
+    let it = urls.iter().map(|u| {
+        load(&(u.to_owned() + &"ontologies".to_owned()))
+            .with_context(|| format!("Could not load ontology {}", u))
+    });
+
     // prevent duplicates
     let mut map = HashMap::new();
     for r in it {
@@ -181,7 +184,7 @@ fn loads(urls: &Vec<String>) -> Result<Embedded, reqwest::Error> {
     })
 }
 
-fn save(ols: OlsConfig, filename: &str) -> Result<(), Box<dyn Error>> {
+fn save(ols: OlsConfig, filename: &str) -> Result<()> {
     let s = serde_yaml::to_string(&ols)?;
     fs::write(filename, s)?;
     println!(
@@ -192,7 +195,7 @@ fn save(ols: OlsConfig, filename: &str) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> Result<()> {
     let DEFAULT_URIS =
         "https://terminology.nfdi4chem.de/ts/api/ https://terminology.nfdi4ing.de/ts4ing/api/"
             .to_owned();
