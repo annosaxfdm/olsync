@@ -196,9 +196,8 @@ fn save(ols: OlsConfig, filename: &str) -> Result<()> {
 }
 
 fn main() -> Result<()> {
-    let DEFAULT_URIS =
-        "https://terminology.nfdi4chem.de/ts/api/ https://terminology.nfdi4ing.de/ts4ing/api/"
-            .to_owned();
+    // space-separated
+    let DEFAULT_URIS = "https://terminology.nfdi4ing.de/ts4ing/api/".to_owned();
     let uris = env::var("OLSYNC_API_URLS")
         .unwrap_or(DEFAULT_URIS)
         .split_whitespace()
