@@ -1,6 +1,7 @@
 #![allow(non_snake_case)]
 #![allow(dead_code)]
 #![allow(unused_variables)]
+#![allow(clippy::upper_case_acronyms)]
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
@@ -166,9 +167,9 @@ fn load(url: &str) -> Result<OntologiesRoot> {
     Ok(root)
 }
 
-fn loads(urls: &Vec<String>) -> Result<Embedded> {
+fn loads(urls: &[String]) -> Result<Embedded> {
     let it = urls.iter().map(|u| {
-        load(&(u.to_owned() + &"ontologies".to_owned()))
+        load(&(u.to_owned() + "ontologies"))
             .with_context(|| format!("Could not load ontology {}", u))
     });
 
@@ -198,7 +199,7 @@ fn save(ols: OlsConfig, filename: &str) -> Result<()> {
 fn main() -> Result<()> {
     // space-separated
     let DEFAULT_URIS = "https://terminology.nfdi4ing.de/ts4ing/api/".to_owned();
-    let uris = env::var("OLSYNC_API_URLS")
+    let uris: Vec<String> = env::var("OLSYNC_API_URLS")
         .unwrap_or(DEFAULT_URIS)
         .split_whitespace()
         .map(String::from)

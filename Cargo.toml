@@ -1,6 +1,6 @@
 [package]
 name = "olsync"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Konrad Höffner <konrad.hoeffner@uni-leipzig.de>"]
 description = "Generate an OLS YAML configuration file from an existing OLS instance"
