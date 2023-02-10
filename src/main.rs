@@ -144,34 +144,28 @@ fn transform(embedded: &Embedded) -> OlsConfig {
             len = core::cmp::min(len, max);
         }
     }
-    OlsConfig {
-        ontologies: embedded.ontologies[..len].iter().map(transformO).collect(),
-    }
+    OlsConfig { ontologies: embedded.ontologies[..len].iter().map(transformO).collect() }
 }
 
 /* */
 fn load(url: &str) -> Result<OntologiesRoot> {
-    let response = reqwest::blocking::get(url)?
-        .error_for_status()
-        .context("Request failed")?;
+    let response = reqwest::blocking::get(url)?.error_for_status().context("Request failed")?;
     let mut root: OntologiesRoot = response.json().context("Could not decode to JSON")?;
     let mut cursor: &OntologiesRoot = &root;
     let mut nextRoot: OntologiesRoot;
     while let Some(ref nextRef) = cursor._links.next {
         debug!("{}", nextRef.href);
         nextRoot = reqwest::blocking::get(nextRef.href.clone())?.json()?;
-        root._embedded
-            .ontologies
-            .append(&mut nextRoot._embedded.ontologies);
+        root._embedded.ontologies.append(&mut nextRoot._embedded.ontologies);
         cursor = &nextRoot;
     }
     Ok(root)
 }
 
 fn loads(urls: &[String]) -> Result<Embedded> {
-    let it = urls.iter().map(|u| {
-        load(&(u.clone() + "ontologies")).with_context(|| format!("Could not load ontology {u}"))
-    });
+    let it = urls
+        .iter()
+        .map(|u| load(&(u.clone() + "ontologies")).with_context(|| format!("Could not load ontology {u}")));
 
     // prevent duplicates
     let mut map = HashMap::new();
@@ -180,19 +174,13 @@ fn loads(urls: &[String]) -> Result<Embedded> {
             map.insert(ontology.ontologyId.clone(), ontology);
         }
     }
-    Ok(Embedded {
-        ontologies: map.into_values().collect(),
-    })
+    Ok(Embedded { ontologies: map.into_values().collect() })
 }
 
 fn save(ols: &OlsConfig, filename: &str) -> Result<()> {
     let s = serde_yaml::to_string(ols)?;
     fs::write(filename, s)?;
-    info!(
-        "{} ontologies written to {}",
-        ols.ontologies.len(),
-        filename
-    );
+    info!("{} ontologies written to {}", ols.ontologies.len(), filename);
     Ok(())
 }
 
@@ -204,15 +192,9 @@ fn main() -> Result<()> {
         .init();
     // space-separated
     let DEFAULT_URIS = "https://semanticlookup.zbmed.de/ols/api/".to_owned();
-    let uris: Vec<String> = env::var("OLSYNC_API_URLS")
-        .unwrap_or(DEFAULT_URIS)
-        .split_whitespace()
-        .map(String::from)
-        .collect();
+    let uris: Vec<String> =
+        env::var("OLSYNC_API_URLS").unwrap_or(DEFAULT_URIS).split_whitespace().map(String::from).collect();
     let embedded = loads(&uris)?;
-    save(
-        &transform(&embedded),
-        &env::var("OLSYNC_CONFIG_FILE").unwrap_or_else(|_| "olsync.yml".to_string()),
-    )?;
+    save(&transform(&embedded), &env::var("OLSYNC_CONFIG_FILE").unwrap_or_else(|_| "olsync.yml".to_string()))?;
     Ok(())
 }
