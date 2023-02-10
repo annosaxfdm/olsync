@@ -1,3 +1,5 @@
+#![warn(clippy::all, clippy::pedantic, clippy::nursery, clippy::cargo)]
+#![allow(clippy::used_underscore_binding)]
 #![allow(non_snake_case)]
 #![allow(dead_code)]
 #![allow(unused_variables)]
@@ -169,8 +171,7 @@ fn load(url: &str) -> Result<OntologiesRoot> {
 
 fn loads(urls: &[String]) -> Result<Embedded> {
     let it = urls.iter().map(|u| {
-        load(&(u.to_owned() + "ontologies"))
-            .with_context(|| format!("Could not load ontology {}", u))
+        load(&(u.clone() + "ontologies")).with_context(|| format!("Could not load ontology {u}"))
     });
 
     // prevent duplicates
@@ -185,8 +186,8 @@ fn loads(urls: &[String]) -> Result<Embedded> {
     })
 }
 
-fn save(ols: OlsConfig, filename: &str) -> Result<()> {
-    let s = serde_yaml::to_string(&ols)?;
+fn save(ols: &OlsConfig, filename: &str) -> Result<()> {
+    let s = serde_yaml::to_string(ols)?;
     fs::write(filename, s)?;
     println!(
         "{} ontologies written to {}",
@@ -206,8 +207,8 @@ fn main() -> Result<()> {
         .collect();
     let embedded = loads(&uris)?;
     save(
-        transform(&embedded),
-        &env::var("OLSYNC_CONFIG_FILE").unwrap_or("olsync.yml".to_string()),
+        &transform(&embedded),
+        &env::var("OLSYNC_CONFIG_FILE").unwrap_or_else(|_| "olsync.yml".to_string()),
     )?;
     Ok(())
 }
