@@ -6,6 +6,7 @@
 #![allow(clippy::upper_case_acronyms)]
 
 use anyhow::{Context, Result};
+use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::env;
@@ -18,6 +19,7 @@ enum Status {
     SKIP,
     FAILED,
     LOADING,
+    DOWNLOADING,
 }
 
 #[derive(Deserialize, Debug)]
@@ -67,8 +69,8 @@ struct Ontology {
     status: Status,
     message: String,
     version: Option<String>,
-    fileHash: String,
-    loadAttempts: u32,
+    //fileHash: String,
+    //loadAttempts: u32,
     config: OntologyConfig,
 }
 
@@ -149,22 +151,19 @@ fn transform(embedded: &Embedded) -> OlsConfig {
 
 /* */
 fn load(url: &str) -> Result<OntologiesRoot> {
-    let content = reqwest::blocking::get(url).context("Could not read content")?;
-    let mut root: OntologiesRoot = content.json().context("Could not decode to JSON")?;
-
+    let response = reqwest::blocking::get(url)?
+        .error_for_status()
+        .context("Request failed")?;
+    let mut root: OntologiesRoot = response.json().context("Could not decode to JSON")?;
     let mut cursor: &OntologiesRoot = &root;
     let mut nextRoot: OntologiesRoot;
     while let Some(ref nextRef) = cursor._links.next {
-        println!("{}", nextRef.href);
+        debug!("{}", nextRef.href);
         nextRoot = reqwest::blocking::get(nextRef.href.clone())?.json()?;
         root._embedded
             .ontologies
             .append(&mut nextRoot._embedded.ontologies);
         cursor = &nextRoot;
-    }
-    //println!("{:#?}",root);
-    for o in &root._embedded.ontologies {
-        //println!("{:#?}", o)
     }
     Ok(root)
 }
@@ -189,7 +188,7 @@ fn loads(urls: &[String]) -> Result<Embedded> {
 fn save(ols: &OlsConfig, filename: &str) -> Result<()> {
     let s = serde_yaml::to_string(ols)?;
     fs::write(filename, s)?;
-    println!(
+    info!(
         "{} ontologies written to {}",
         ols.ontologies.len(),
         filename
@@ -198,8 +197,13 @@ fn save(ols: &OlsConfig, filename: &str) -> Result<()> {
 }
 
 fn main() -> Result<()> {
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("olsync=debug"))
+        .format_timestamp(None)
+        .format_target(false)
+        .format_level(false)
+        .init();
     // space-separated
-    let DEFAULT_URIS = "https://terminology.nfdi4ing.de/ts4ing/api/".to_owned();
+    let DEFAULT_URIS = "https://semanticlookup.zbmed.de/ols/api/".to_owned();
     let uris: Vec<String> = env::var("OLSYNC_API_URLS")
         .unwrap_or(DEFAULT_URIS)
         .split_whitespace()
