@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 FROM clux/muslrust:stable AS chef
 USER root
 RUN cargo install cargo-chef
