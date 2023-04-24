@@ -4,13 +4,13 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 #![allow(clippy::upper_case_acronyms)]
+#![allow(clippy::multiple_crate_versions)]
 
 use anyhow::{Context, Result};
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::env;
-use std::fs;
+use std::{env, fs};
 
 // OLS API *******************
 #[derive(Deserialize, Debug)]
@@ -96,7 +96,7 @@ struct OntologiesRoot {
 }
 
 // OLS Config ************
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 struct OlsOntology {
     //activity_status: String
     id: String,
@@ -114,7 +114,7 @@ struct OlsOntology {
     hidden_property: Vec<String>,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 struct OlsConfig {
     ontologies: Vec<OlsOntology>,
 }
@@ -197,4 +197,23 @@ fn main() -> Result<()> {
     let embedded = loads(&uris)?;
     save(&transform(&embedded), &env::var("OLSYNC_CONFIG_FILE").unwrap_or_else(|_| "olsync.yml".to_string()))?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::main;
+    use std::{env, fs};
+
+    #[test]
+    fn test() {
+        env::set_var("OLSYNC_API_URLS", "https://semanticlookup.zbmed.de/ols/api/");
+        main().unwrap();
+        let filename = "olsync.yml";
+        let s = fs::read_to_string(filename).unwrap();
+        let ols: OlsConfig = serde_yaml::from_str(&s).unwrap();
+        assert!(ols.ontologies.len() > 5);
+        let uniprot = ols.ontologies.iter().filter(|o| o.id == "uniprot").next().unwrap();
+        assert_eq!(uniprot.preferredPrefix, Some("UNIPROT".to_owned()));
+    }
 }
