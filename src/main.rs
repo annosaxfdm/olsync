@@ -19,6 +19,7 @@ enum Status {
     SKIP,
     FAILED,
     LOADING,
+    TOLOAD,
     DOWNLOADING,
 }
 
