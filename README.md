@@ -1,7 +1,7 @@
-# OLS Synchronizer
+# OLS 3 Synchronizer
 
-Given a source OLS instance, creates an OLS YAML configuration file for importing the same ontologies into another OLS instance.
-Early research prototype, not production ready at all.
+Given a source OLS 3 instance, creates an OLS YAML configuration file for importing the same ontologies into another OLS 3 instance.
+Research prototype.
 
 ## Usage
 Requires Rust and Cargo to be installed.
